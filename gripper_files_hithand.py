@@ -256,6 +256,7 @@ class Gripper(object):
 
     self.chain_map = {}
 
+    # self.joints [thumb_join1, thumb_joint2,...;index_joint1...]
     for elem in self.joints:
       self.joint_map[elem.name] = elem
       self.parent_map[elem.child] = (elem.name, elem.parent)
@@ -347,7 +348,7 @@ class Gripper(object):
               T_tmp = np.copy(self.joint_map[elem].get_transformation_matrix(0))
           T0 = T_tmp.dot(T0)
         self.T0_map[link] = self.link_map[self.root].base_T.dot(T0)
-    self.T0_map['base_link'] = self.link_map[self.root].base_T.dot(self.link_map['base_link'].visual.T)
+    self.T0_map['base_link_hithand'] = self.link_map[self.root].base_T.dot(self.link_map['base_link_hithand'].visual.T)
 
   def cal_all_bbox(self):
     self.cal_configure()
@@ -369,7 +370,12 @@ class Gripper(object):
       if link_name in self.parent_map:
         link_pc = self.link_map[link_name].visual.obj.pc_4d.dot(self.T0_map[link_name].transpose())[:,0:3]
         self.pc_whole.append(link_pc)
-    self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d.dot(self.link_map[self.get_root()].base_T.transpose())[:,0:3])
+    # add palm point cloud (root frame)
+    # self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d[:,0:3])
+    self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d.dot(self.link_map[self.get_root()].visual.T.transpose())[:,0:3])
+
+    # Origin code
+    # self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d.dot(self.link_map[self.get_root()].base_T.transpose())[:,0:3])
     self.pc_whole = np.array(self.pc_whole).reshape((-1,3))
     plot_pc(self.pc_whole)
     #mayalab.show()
@@ -519,20 +525,21 @@ class Gripper(object):
 if __name__ == "__main__":
   ###### Example of loading and visualizing the robotiq3f
 
-  GRIPPER_DIR = "./gripper_data/robotiq3f"
-  MESH_DIR = "./gripper_data/robotiq3f/meshes"
+  GRIPPER_DIR = "./gripper_data/hithand"
+  MESH_DIR = "./gripper_data/hithand/meshes"
 
   ### Gripper Model
-  urdf_file = os.path.join(GRIPPER_DIR,"robotiq_3f_test.urdf")
+  urdf_file = os.path.join(GRIPPER_DIR,"hithand.urdf")
+
   with open(urdf_file,'r') as myfile:
     urdf_strings =  myfile.read().replace('\n','')
   gripper_in_urdf = URDF.from_xml_string(urdf_strings)
 
   tip_pc = np.array([0.033,0.0079,0])
   gripper = Gripper(gripper_in_urdf=gripper_in_urdf,tip_pc=tip_pc,mesh_top_dir=MESH_DIR)
-  gripper.joint_map['finger_1_joint_3'].default_joint_value = -0.6632
-  gripper.joint_map['finger_2_joint_3'].default_joint_value = -0.6632
-  gripper.joint_map['finger_middle_joint_3'].default_joint_value = -0.6632
+  # gripper.joint_map['finger_1_joint_3'].default_joint_value = -0.6632
+  # gripper.joint_map['finger_2_joint_3'].default_joint_value = -0.6632
+  # gripper.joint_map['finger_middle_joint_3'].default_joint_value = -0.6632
 
   gripper.get_root()
   gripper.get_all_T0()
@@ -540,11 +547,30 @@ if __name__ == "__main__":
   mayalab.show()
 
   #####  Forward Kinematics
-  gripper.q_value_map['finger_1_joint_1'] = 0.9
-  gripper.q_value_map['palm_finger_1_joint'] = 0.9
-  gripper.q_value_map['finger_2_joint_1'] = 0.9
-  gripper.q_value_map['palm_finger_2_joint'] = 0.9
-  gripper.q_value_map['finger_middle_joint_1'] = 0.9
+  gripper.q_value_map['Right_Index_0'] = 0.0
+  gripper.q_value_map['Right_Index_1'] = 0.0
+  gripper.q_value_map['Right_Index_2'] = 0.0
+  gripper.q_value_map['Right_Index_3'] = 0.0
+
+  gripper.q_value_map['Right_Little_0'] = 0.0
+  gripper.q_value_map['Right_Little_1'] = 0.0
+  gripper.q_value_map['Right_Little_2'] = 0.0
+  gripper.q_value_map['Right_Little_3'] = 0.0
+
+  gripper.q_value_map['Right_Middle_0'] = 0.0
+  gripper.q_value_map['Right_Middle_1'] = 0.0
+  gripper.q_value_map['Right_Middle_2'] = 0.0
+  gripper.q_value_map['Right_Middle_3'] = 0.0
+
+  gripper.q_value_map['Right_Ring_0'] = 0.0
+  gripper.q_value_map['Right_Ring_1'] = 0.0
+  gripper.q_value_map['Right_Ring_2'] = 0.0
+  gripper.q_value_map['Right_Ring_3'] = 0.0
+
+  gripper.q_value_map['Right_Thumb_0'] = 0.0
+  gripper.q_value_map['Right_Thumb_1'] = 0.0
+  gripper.q_value_map['Right_Thumb_2'] = 0.0
+  gripper.q_value_map['Right_Thumb_3'] = 0.0
 
   gripper.vis()
   mayalab.show()

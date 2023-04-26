@@ -2,6 +2,7 @@
 <robot name="hithand">
   <!-- ++++ Define all the links and joints ++++ -->
   <!-- Starting from the base -->
+
   <link name="base_link_hithand">
     <inertial>
       <origin rpy="0 0 0" xyz="0.0112 0.0 0.0566"/>
@@ -9,7 +10,8 @@
       <inertia ixx="2.2458e-3" ixy="-2.7421e-4" ixz="1.6e-5" iyy="2.2203e-3" iyz="-6.37e-5" izz="1.9003e-3"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+    <!-- here originally it's rpy = 0.0.0-->
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="visual/palm/hit-hand-2-palm-right-3faces.obj"/>
       </geometry>
