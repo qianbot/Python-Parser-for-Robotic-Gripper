@@ -19,3 +19,9 @@ tk=8.6.10=hbc83047_0
 wheel=0.35.1=py_0
 xz=5.2.5=h7b6447c_0
 zlib=1.2.11=h7b6447c_3
+
+numpy
+pyyaml
+lxml=4.9.2
+mayavi
+pyqt5
