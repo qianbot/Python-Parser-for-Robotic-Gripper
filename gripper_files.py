@@ -46,7 +46,7 @@ class Mesh(object):
     print("filename",self.filename)
     self.mesh = OBJ(file_name=self.filename)
     self.pc = self.mesh.sample_points(4096,with_normal=False)[0]
- 
+
 
 class Visual(object):
   def __init__(self,visual_in_urdf):
@@ -74,11 +74,11 @@ class Collision(object):
     self.zmax = np.max(visual.obj.pc[:,2]) - self.epi
     self.zmin = np.min(visual.obj.pc[:,2]) + self.epi
     self.geometry = Bbox(extrema=np.array([self.xmin,self.ymin,self.zmin,self.xmax,self.ymax,self.zmax]))
-    #print("self.geometry",self.geometry.corner_points)    
+    #print("self.geometry",self.geometry.corner_points)
 
 class Link(object):
   def __init__(self,link_in_urdf):
-    self.name = link_in_urdf.name 
+    self.name = link_in_urdf.name
     self.visual = Visual(link_in_urdf.visual)
     self.collision = Collision(self.visual)
     if link_in_urdf.origin != None:
@@ -88,11 +88,11 @@ class Link(object):
       self.origin = None
       self.T = np.eye(4)
     self.base_T = np.eye(4)
-    
+
   def get_transformation_matrix(self,value):
     return self.visual.T
 
- 
+
 class Joint(object):
   def __init__(self,joint_in_urdf):
     self.name = joint_in_urdf.name
@@ -116,8 +116,8 @@ class Joint(object):
      frame = np.copy(self.T)
      #print("joint_angle",joint_angle,"self.type",self.type,"self.axis",self.axis)
      if self.type == 'fixed':
-       if self.axis is not None: 
-         rotmat = angleaxis_rotmat(self.default_joint_value,self.axis) 
+       if self.axis is not None:
+         rotmat = angleaxis_rotmat(self.default_joint_value,self.axis)
          return np.dot(frame,rotmat)
        else:
          return frame
@@ -133,7 +133,7 @@ class Chain(object):
   Parameters
   ----
   links: list : List of the links for the chain
-  active_links_mask:list : A list of boolean indicating that whether or not the corresponding link is active  
+  active_links_mask:list : A list of boolean indicating that whether or not the corresponding link is active
   name: str: The name of the Chain
   """
   def __init__(self, joints, active_joints_mask=None, name="chain", tip_pc=None, gripper=None, profile=''"",**kwargs):
@@ -155,11 +155,11 @@ class Chain(object):
   def forward_kinematics(self, joint_values, full_kinematics=False):
     """
     Returns the transformation matrix of the forward kinematics.
-    
+
     Parameters:
     joints: list : The list of the positions of each joint. Noet: Inactive joints must not be in the list.
     full_kinematics: bool: Returns the transformation matrices of each joint.
-    
+
     Returns:
     -----
     frame_matrix:
@@ -171,9 +171,9 @@ class Chain(object):
 
     if full_kinematics:
       frame_matrixes = []
- 
+
     self.joints_value = self.active_to_full(joint_values,self.initial_position)
- 
+
     for index, joint in enumerate(self.joints):
       # Compute iteratively the position
       # NB: Use asarray to avoid old sympy problems
@@ -181,18 +181,18 @@ class Chain(object):
         frame_matrix = np.dot(np.asarray(joint.get_transformation_matrix(self.joints_value[index])),frame_matrix)
       else:
         frame_matrix = np.dot(np.asarray(joint.get_transformation_matrix(0)),frame_matrix)
-             
+
       if full_kinematics:
-        # rotation_axes = np.dot(frame_matrix, link.rotation) 
+        # rotation_axes = np.dot(frame_matrix, link.rotation)
         frame_matrixes.append(frame_matrix)
-  
+
     # Return the matrix, or matric3es
     if full_kinematics:
       return frame_matrixes
     else:
       return frame_matrix
 
- 
+
   def inverse_kinematics(self,target,initial_position=None,**kwargs):
     """Computes the inverse kinematic on the speicified target.
     Parameters:
@@ -201,15 +201,15 @@ class Chain(object):
       The frame target of the inverse kinematic, in meters. It must be 4x4 transformation matrix
     initial_position: numpy.array
       Optional: the initial position of each joint of the chain. Defaults to 0 for each joint.
-    
+
     Returns:
-    ------- 
+    -------
     The list of the position of each joint according to the target. Note: Inactive joints are in the list.
     """
     target = np.array(target)
     if target.shape != (4,4):
-      raise ValueError("Your target must be a 4x4 transformation matrix") 
-  
+      raise ValueError("Your target must be a 4x4 transformation matrix")
+
     if initial_position is None:
       initial_position = [0] * len(self.joints)
     else:
@@ -235,7 +235,7 @@ class Gripper(object):
     self.tip_pc = tip_pc
 
     self.links = []
-    for link in gripper_in_urdf.links:   
+    for link in gripper_in_urdf.links:
       self.links.append(Link(link))
 
     self.joints = []
@@ -251,7 +251,7 @@ class Gripper(object):
     self.q_limit_map = {}
     self.q_T_map = {}
     self.q_value_map = {}
-    self.q_axis_map = {} 
+    self.q_axis_map = {}
     self.q_type_map = {}
 
     self.chain_map = {}
@@ -263,14 +263,14 @@ class Gripper(object):
         self.child_map[elem.parent].append((elem.name, elem.child))
       else:
         self.child_map[elem.parent] = [(elem.name, elem.child)]
- 
+
     for elem in self.links:
       self.link_map[elem.name] = elem
 
     for elem in self.joints:
       if elem.type == 'revolute' or elem.type == 'prismatic':
         self.q_limit_map[elem.name] = elem.limit
-        self.q_value_map[elem.name] = 0.0 #np.random.uniform(low=elem.limit.lower,high=elem.limit.upper,size=1)[0] 
+        self.q_value_map[elem.name] = 0.0 #np.random.uniform(low=elem.limit.lower,high=elem.limit.upper,size=1)[0]
         self.q_axis_map[elem.name] = elem.axis
         self.q_type_map[elem.name] = elem.type
 
@@ -288,7 +288,7 @@ class Gripper(object):
         rotmat = angleaxis_rotmat(self.q_value_map[elem],self.q_axis_map[elem])
         self.q_T_map[elem] = rotmat
 
- 
+
   def get_chain(self,root,tip,joints=True,links=True,fixed=True,tip_flag=True,return_active_joints=False):
     chain = []
     active_joints_mask = []
@@ -302,7 +302,7 @@ class Gripper(object):
         chain.append(tip)
     link = tip
     while link != root:
-      (joint, parent) = self.parent_map[link] 
+      (joint, parent) = self.parent_map[link]
       if joints:
         #if fixed or self.joint_map[joint].type != 'fixed':
         chain.append(joint)
@@ -312,13 +312,13 @@ class Gripper(object):
         else:
           active_joints_mask.append(True)
       if links:
-        chain.append(parent)   
+        chain.append(parent)
       link = parent
     if not return_active_joints:
       return chain
     else:
       return chain, active_joints_mask, chain_obj
- 
+
 
   def get_root(self):
     root = None
@@ -329,22 +329,22 @@ class Gripper(object):
 
 
   def get_all_T0(self):
-    self.cal_configure() 
+    self.cal_configure()
     self.root = self.get_root()
     self.T0_map = {}
     for link in self.link_map:
       if link in self.parent_map:
-        link_joint_chain = self.get_chain(self.root,link,links=False) 
+        link_joint_chain = self.get_chain(self.root,link,links=False)
         T0 = np.eye(4)
         for elem in link_joint_chain:
           if elem in self.link_map:
-            T_tmp = np.copy(self.link_map[elem].visual.T)          
+            T_tmp = np.copy(self.link_map[elem].visual.T)
           if elem in self.joint_map:
             if elem in self.q_type_map:
               T_q_map = np.copy(self.q_T_map[elem])
-              T_tmp = np.copy(self.joint_map[elem].T).dot(T_q_map) 
+              T_tmp = np.copy(self.joint_map[elem].T).dot(T_q_map)
             else:
-              T_tmp = np.copy(self.joint_map[elem].get_transformation_matrix(0)) 
+              T_tmp = np.copy(self.joint_map[elem].get_transformation_matrix(0))
           T0 = T_tmp.dot(T0)
         self.T0_map[link] = self.link_map[self.root].base_T.dot(T0)
     self.T0_map['base_link'] = self.link_map[self.root].base_T.dot(self.link_map['base_link'].visual.T)
@@ -354,14 +354,14 @@ class Gripper(object):
     self.get_all_T0()
     for link_name in self.link_map:
       link = self.link_map[link_name]
-      link.collision.geometry.transformation(self.T0_map[link_name]) 
-  
+      link.collision.geometry.transformation(self.T0_map[link_name])
+
   def vis_all_bbox(self):
     self.cal_all_bbox()
     for link_name in self.link_map:
-      link = self.link_map[link_name]  
-      link.collision.geometry.plot()    
-   
+      link = self.link_map[link_name]
+      link.collision.geometry.plot()
+
   def vis(self):
     self.get_all_T0()
     self.pc_whole = []
@@ -376,47 +376,47 @@ class Gripper(object):
 
 
   def inverse_kinematic(self,target_tip_tf,chain_1,chain_2,chain_3,rot=False,initial_frame=None,opt_time=2,lower_stop_thres=0.018,upper_stop_thres=0.036):
-     
-    if not rot:     
+
+    if not rot:
       def optimize_target(x):
         base_frame = np.eye(4)
         base_frame[:3,:3] = rpy_rotmat(x[:3])
-        base_frame[:3,-1] = x[3:6]  
-        num_dof_1 = 2 
+        base_frame[:3,-1] = x[3:6]
+        num_dof_1 = 2
         cal_frame_1 = base_frame.dot(chain_1.forward_kinematics(x[6:6+num_dof_1]))
         target_frame_1 = target_tip_tf[0]
-        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])  
-        num_dof_2 = 2 
+        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])
+        num_dof_2 = 2
         cal_frame_2 = base_frame.dot(chain_2.forward_kinematics(x[6+num_dof_1:6+num_dof_1+num_dof_2]))
         target_frame_2 = target_tip_tf[1]
-        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])  
-        num_dof_3 = 1 
+        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])
+        num_dof_3 = 1
         cal_frame_3 = base_frame.dot(chain_3.forward_kinematics(x[6+num_dof_1+num_dof_2:6+num_dof_1+num_dof_2+num_dof_3]))
         target_frame_3 = target_tip_tf[2]
-        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3]) 
-        #print("predi",cal_frame_3[:3,3],"target",target_frame_3[:3,-1]) 
+        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3])
+        #print("predi",cal_frame_3[:3,3],"target",target_frame_3[:3,-1])
         #print("dist1",dist1,"dist2",dist2,"dist3",dist3)
         return dist3 + dist2 + dist1
     else:
       def optimize_target(x):
         base_frame = np.eye(4)
         base_frame[:3,:3] = rpy_rotmat(x[:3])
-        base_frame[:3,-1] = x[3:6]  
-        num_dof_1 = 2 
+        base_frame[:3,-1] = x[3:6]
+        num_dof_1 = 2
         cal_frame_1 = base_frame.dot(chain_1.forward_kinematics(x[6:6+num_dof_1]))
         target_frame_1 = target_tip_tf[0]
-        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])  
-        dist_rot1 = np.linalg.norm(cal_frame_1[:3,1] - target_frame_1[:3,1])  
-        num_dof_2 = 2 
+        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])
+        dist_rot1 = np.linalg.norm(cal_frame_1[:3,1] - target_frame_1[:3,1])
+        num_dof_2 = 2
         cal_frame_2 = base_frame.dot(chain_2.forward_kinematics(x[6+num_dof_1:6+num_dof_1+num_dof_2]))
         target_frame_2 = target_tip_tf[1]
-        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])  
-        dist_rot2 = np.linalg.norm(cal_frame_2[:3,1] - target_frame_2[:3,1])  
-        num_dof_3 = 1 
+        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])
+        dist_rot2 = np.linalg.norm(cal_frame_2[:3,1] - target_frame_2[:3,1])
+        num_dof_3 = 1
         cal_frame_3 = base_frame.dot(chain_3.forward_kinematics(x[6+num_dof_1+num_dof_2:6+num_dof_1+num_dof_2+num_dof_3]))
         target_frame_3 = target_tip_tf[2]
-        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3]) 
-        dist_rot3 = np.linalg.norm(cal_frame_3[:3,1] - target_frame_3[:3,1])  
+        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3])
+        dist_rot3 = np.linalg.norm(cal_frame_3[:3,1] - target_frame_3[:3,1])
         #print("dist1",dist1,"distrot1",dist_rot1,"dist2",dist2,"dist_rot2",dist_rot2,"dist3",dist3,"dist_rot3",dist_rot3)
         return dist3 + dist2 + dist1 + dist_rot1 * 0.01 + dist_rot2 * 0.01 + dist_rot3 * 0.01
 
@@ -424,77 +424,77 @@ class Gripper(object):
       def optimize_target_vis(x):
         base_frame = np.eye(4)
         base_frame[:3,:3] = rpy_rotmat(x[:3])
-        base_frame[:3,-1] = x[3:6]  
-        num_dof_1 = 2 
+        base_frame[:3,-1] = x[3:6]
+        num_dof_1 = 2
         cal_frame_1 = base_frame.dot(chain_1.forward_kinematics(x[6:6+num_dof_1]))
         target_frame_1 = target_tip_tf[0]
-        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])  
-        num_dof_2 = 2 
+        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])
+        num_dof_2 = 2
         cal_frame_2 = base_frame.dot(chain_2.forward_kinematics(x[6+num_dof_1:6+num_dof_1+num_dof_2]))
         target_frame_2 = target_tip_tf[1]
-        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])  
-        num_dof_3 = 1 
+        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])
+        num_dof_3 = 1
         cal_frame_3 = base_frame.dot(chain_3.forward_kinematics(x[6+num_dof_1+num_dof_2:6+num_dof_1+num_dof_2+num_dof_3]))
         target_frame_3 = target_tip_tf[2]
-        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3]) 
+        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3])
         #print("dist1",dist1,"dist2",dist2,"dist3",dist3)
         return dist3 + dist2 + dist1
-    else: 
+    else:
       def optimize_target_vis(x):
         base_frame = np.eye(4)
         base_frame[:3,:3] = rpy_rotmat(x[:3])
-        base_frame[:3,-1] = x[3:6]  
-        num_dof_1 = 2 
+        base_frame[:3,-1] = x[3:6]
+        num_dof_1 = 2
         cal_frame_1 = base_frame.dot(chain_1.forward_kinematics(x[6:6+num_dof_1]))
         target_frame_1 = target_tip_tf[0]
-        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])  
-        dist_rot1 = np.linalg.norm(cal_frame_1[:3,1] - target_frame_1[:3,1])  
-        num_dof_2 = 2 
+        dist1 = np.linalg.norm(cal_frame_1[:3,3] - target_frame_1[:3,3])
+        dist_rot1 = np.linalg.norm(cal_frame_1[:3,1] - target_frame_1[:3,1])
+        num_dof_2 = 2
         cal_frame_2 = base_frame.dot(chain_2.forward_kinematics(x[6+num_dof_1:6+num_dof_1+num_dof_2]))
         target_frame_2 = target_tip_tf[1]
-        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])  
-        dist_rot2 = np.linalg.norm(cal_frame_2[:3,1] - target_frame_2[:3,1])  
-        num_dof_3 = 1 
+        dist2 = np.linalg.norm(cal_frame_2[:3,3] - target_frame_2[:3,3])
+        dist_rot2 = np.linalg.norm(cal_frame_2[:3,1] - target_frame_2[:3,1])
+        num_dof_3 = 1
         cal_frame_3 = base_frame.dot(chain_3.forward_kinematics(x[6+num_dof_1+num_dof_2:6+num_dof_1+num_dof_2+num_dof_3]))
         target_frame_3 = target_tip_tf[2]
-        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3]) 
-        dist_rot3 = np.linalg.norm(cal_frame_3[:3,1] - target_frame_3[:3,1])  
+        dist3 = np.linalg.norm(cal_frame_3[:3,3] - target_frame_3[:3,3])
+        dist_rot3 = np.linalg.norm(cal_frame_3[:3,1] - target_frame_3[:3,1])
         print("dist1",dist1,"distrot1",dist_rot1,"dist2",dist2,"dist_rot2",dist_rot2,"dist3",dist3,"dist_rot3",dist_rot3)
         return dist3 + dist2 + dist1 + dist_rot1 * 0.01 + dist_rot2 * 0.01 + dist_rot3 * 0.01
- 
-    
+
+
     # compute bounds
     if initial_frame is None:
       #real_bounds = [(-3.14,3.14)] * (3)
       #real_bounds += [(-0.25,0.25)] * (3)
-      #real_bounds += [(0,0)] * 3 
+      #real_bounds += [(0,0)] * 3
       real_bounds = [(0,0)] * 6
     else:
       initial_rpy = euler_from_matrix(initial_frame[:3,:3])
       real_bounds = [(-3.14/10 + initial_rpy[0], 3.14/10 + initial_rpy[0])]
       real_bounds += [(-3.14/10 + initial_rpy[1], 3.14/10 + initial_rpy[1])]
       real_bounds += [(-3.14/10 + initial_rpy[2], 3.14/10 + initial_rpy[2])]
- 
+
       real_bounds += [(-0.05 + initial_frame[0,3],0.05 + initial_frame[0,3])]
       real_bounds += [(-0.05 + initial_frame[1,3],0.05 + initial_frame[1,3])]
       real_bounds += [(-0.05 + initial_frame[2,3],0.05 + initial_frame[2,3])]
-     
+
 
     for idx,joint in enumerate(chain_1.joints):
       if chain_1.active_joints_mask[idx]:
         real_bounds.append((joint.limit.lower,joint.limit.upper))
- 
+
     for idx, joint in enumerate(chain_2.joints):
       if chain_2.active_joints_mask[idx]:
         real_bounds.append((joint.limit.lower,joint.limit.upper))
- 
+
     for idx, joint in enumerate(chain_3.joints):
       if chain_3.active_joints_mask[idx]:
         real_bounds.append((joint.limit.lower,joint.limit.upper))
 
     min_fun = 1000000.0
-    min_res_x = None 
-   
+    min_res_x = None
+
     for i in range(opt_time):
       print("opti",i)
       initial_pos = []
@@ -519,11 +519,17 @@ class Gripper(object):
 if __name__ == "__main__":
   ###### Example of loading and visualizing the robotiq3f
 
-  GRIPPER_DIR = "./gripper_data/robotiq3f"
-  MESH_DIR = "./gripper_data/robotiq3f/meshes"
+  GRIPPER_DIR = "./gripper_data/hithand"
+  MESH_DIR = "./gripper_data/hithand/meshes"
 
   ### Gripper Model
-  urdf_file = os.path.join(GRIPPER_DIR,"robotiq_3f_test.urdf")
+  urdf_file = os.path.join(GRIPPER_DIR,"hithand.urdf")
+
+  # GRIPPER_DIR = "./gripper_data/robotiq3f"
+  # MESH_DIR = "./gripper_data/robotiq3f/meshes"
+
+  # ### Gripper Model
+  # urdf_file = os.path.join(GRIPPER_DIR,"robotiq_3f_test.urdf")
   with open(urdf_file,'r') as myfile:
     urdf_strings =  myfile.read().replace('\n','')
   gripper_in_urdf = URDF.from_xml_string(urdf_strings)
@@ -549,89 +555,89 @@ if __name__ == "__main__":
   gripper.vis()
   mayalab.show()
 
-  ######Inverse Kinematics
-  f1_tip = gripper.chain_map['finger_1_link_3']
-  f2_tip = gripper.chain_map['finger_2_link_3']
-  f3_tip = gripper.chain_map['finger_middle_link_3']
+  # ######Inverse Kinematics
+  # f1_tip = gripper.chain_map['finger_1_link_3']
+  # f2_tip = gripper.chain_map['finger_2_link_3']
+  # f3_tip = gripper.chain_map['finger_middle_link_3']
 
-  target_base_frame = np.eye(4)
-  gripper.link_map['base_link'].base_T = np.copy(target_base_frame)
+  # target_base_frame = np.eye(4)
+  # gripper.link_map['base_link'].base_T = np.copy(target_base_frame)
 
-  target_frame_1 = f1_tip.forward_kinematics([0.4,0.1])
-  target_frame_2 = f2_tip.forward_kinematics([0.5,-0.1])
-  target_frame_3 = f3_tip.forward_kinematics([0.1])
+  # target_frame_1 = f1_tip.forward_kinematics([0.4,0.1])
+  # target_frame_2 = f2_tip.forward_kinematics([0.5,-0.1])
+  # target_frame_3 = f3_tip.forward_kinematics([0.1])
 
-  target_tip_1 = target_base_frame.dot(target_frame_1)
-  target_tip_2 = target_base_frame.dot(target_frame_2)
-  target_tip_3 = target_base_frame.dot(target_frame_3)
+  # target_tip_1 = target_base_frame.dot(target_frame_1)
+  # target_tip_2 = target_base_frame.dot(target_frame_2)
+  # target_tip_3 = target_base_frame.dot(target_frame_3)
 
-  f1_tip_pc = target_tip_1[:3,3]
-  f1_tip_pc = np.array(f1_tip_pc).reshape((-1,3))
-  f1_tip_n = np.copy(target_tip_1[:3,1])
-  f1_tip_n = np.array(f1_tip_n).reshape((-1,3))
-  plot_pc(f1_tip_pc,color='red',mode='sphere',scale_factor=.01)
-  plot_pc_with_normal(f1_tip_pc,f1_tip_n * 0.01,scale_factor=0.1)
+  # f1_tip_pc = target_tip_1[:3,3]
+  # f1_tip_pc = np.array(f1_tip_pc).reshape((-1,3))
+  # f1_tip_n = np.copy(target_tip_1[:3,1])
+  # f1_tip_n = np.array(f1_tip_n).reshape((-1,3))
+  # plot_pc(f1_tip_pc,color='red',mode='sphere',scale_factor=.01)
+  # plot_pc_with_normal(f1_tip_pc,f1_tip_n * 0.01,scale_factor=0.1)
 
-  f2_tip_pc = target_tip_2[:3,3]
-  f2_tip_pc = np.array(f2_tip_pc).reshape((-1,3))
-  f2_tip_n = np.copy(target_tip_2[:3,1])
-  f2_tip_n = np.array(f2_tip_n).reshape((-1,3))
-  plot_pc(f2_tip_pc,color='green',mode='sphere',scale_factor=.01)
-  plot_pc_with_normal(f2_tip_pc,f2_tip_n * 0.01,scale_factor=0.1)
+  # f2_tip_pc = target_tip_2[:3,3]
+  # f2_tip_pc = np.array(f2_tip_pc).reshape((-1,3))
+  # f2_tip_n = np.copy(target_tip_2[:3,1])
+  # f2_tip_n = np.array(f2_tip_n).reshape((-1,3))
+  # plot_pc(f2_tip_pc,color='green',mode='sphere',scale_factor=.01)
+  # plot_pc_with_normal(f2_tip_pc,f2_tip_n * 0.01,scale_factor=0.1)
 
-  f3_tip_pc = target_tip_3[:3,3]
-  f3_tip_pc = np.array(f3_tip_pc).reshape((-1,3))
-  f3_tip_n = np.copy(target_tip_3[:3,1])
-  f3_tip_n = np.array(f3_tip_n).reshape((-1,3))
-  plot_pc(f3_tip_pc,color='blue',mode='sphere',scale_factor=.01)
-  plot_pc_with_normal(f3_tip_pc,f3_tip_n * 0.01,scale_factor=0.1)
+  # f3_tip_pc = target_tip_3[:3,3]
+  # f3_tip_pc = np.array(f3_tip_pc).reshape((-1,3))
+  # f3_tip_n = np.copy(target_tip_3[:3,1])
+  # f3_tip_n = np.array(f3_tip_n).reshape((-1,3))
+  # plot_pc(f3_tip_pc,color='blue',mode='sphere',scale_factor=.01)
+  # plot_pc_with_normal(f3_tip_pc,f3_tip_n * 0.01,scale_factor=0.1)
 
-  target_tips = []
-  target_tips.append(target_tip_1)
-  target_tips.append(target_tip_2)
-  target_tips.append(target_tip_3)
+  # target_tips = []
+  # target_tips.append(target_tip_1)
+  # target_tips.append(target_tip_2)
+  # target_tips.append(target_tip_3)
 
-  plot_origin()
+  # plot_origin()
 
-  #mayalab.show()
+  # #mayalab.show()
 
-  q_list,_ = gripper.inverse_kinematic(target_tips,gripper.chain_map['finger_1_link_3'],gripper.chain_map['finger_2_link_3'],gripper.chain_map['finger_middle_link_3'],rot=True)
-  gripper.link_map['base_link'].base_T = np.eye(4)
-  gripper.link_map['base_link'].base_T[:3,:3] = np.copy(rpy_rotmat(q_list[:3]))
-  gripper.link_map['base_link'].base_T[:3,-1] = np.copy(q_list[3:6])
+  # q_list,_ = gripper.inverse_kinematic(target_tips,gripper.chain_map['finger_1_link_3'],gripper.chain_map['finger_2_link_3'],gripper.chain_map['finger_middle_link_3'],rot=True)
+  # gripper.link_map['base_link'].base_T = np.eye(4)
+  # gripper.link_map['base_link'].base_T[:3,:3] = np.copy(rpy_rotmat(q_list[:3]))
+  # gripper.link_map['base_link'].base_T[:3,-1] = np.copy(q_list[3:6])
 
-  count = 6
-  for idx,joint in enumerate(f1_tip.joints):
-    if f1_tip.active_joints_mask[idx]:
-      gripper.q_value_map[joint.name] = q_list[count]
-      print("joint.name",joint.name,q_list[count],count)
-      count  = count + 1
-  predict_f1_tip = gripper.link_map['base_link'].base_T.dot(gripper.chain_map['finger_1_link_3'].forward_kinematics([q_list[6],q_list[7]]))
-  predict_f1_tip = np.array(predict_f1_tip[:3,-1]).reshape((-1,3))
-  plot_pc(predict_f1_tip,color='red',mode='cube',scale_factor=.005)
+  # count = 6
+  # for idx,joint in enumerate(f1_tip.joints):
+  #   if f1_tip.active_joints_mask[idx]:
+  #     gripper.q_value_map[joint.name] = q_list[count]
+  #     print("joint.name",joint.name,q_list[count],count)
+  #     count  = count + 1
+  # predict_f1_tip = gripper.link_map['base_link'].base_T.dot(gripper.chain_map['finger_1_link_3'].forward_kinematics([q_list[6],q_list[7]]))
+  # predict_f1_tip = np.array(predict_f1_tip[:3,-1]).reshape((-1,3))
+  # plot_pc(predict_f1_tip,color='red',mode='cube',scale_factor=.005)
 
-  for idx,joint in enumerate(f2_tip.joints):
-    if f2_tip.active_joints_mask[idx]:
-      gripper.q_value_map[joint.name] = q_list[count]
-      print("joint.name", joint.name, q_list[count], count)
-      count  = count + 1
+  # for idx,joint in enumerate(f2_tip.joints):
+  #   if f2_tip.active_joints_mask[idx]:
+  #     gripper.q_value_map[joint.name] = q_list[count]
+  #     print("joint.name", joint.name, q_list[count], count)
+  #     count  = count + 1
 
-  predict_f2_tip = gripper.link_map['base_link'].base_T.dot(gripper.chain_map['finger_2_link_3'].forward_kinematics([q_list[8],q_list[9]]))
-  predict_f2_tip = np.array(predict_f2_tip[:3,-1]).reshape((-1,3))
-  plot_pc(predict_f2_tip,color='green',mode='cube',scale_factor=.005)
+  # predict_f2_tip = gripper.link_map['base_link'].base_T.dot(gripper.chain_map['finger_2_link_3'].forward_kinematics([q_list[8],q_list[9]]))
+  # predict_f2_tip = np.array(predict_f2_tip[:3,-1]).reshape((-1,3))
+  # plot_pc(predict_f2_tip,color='green',mode='cube',scale_factor=.005)
 
-  for idx,joint in enumerate(f3_tip.joints):
-    if f3_tip.active_joints_mask[idx]:
-      gripper.q_value_map[joint.name] = q_list[count]
-      print("joint.name", joint.name, q_list[count], count)
-      count  = count + 1
-  predict_f3_tip = gripper.link_map['base_link'].base_T.dot(gripper.chain_map['finger_middle_link_3'].forward_kinematics([q_list[10]]))
-  predict_f3_tip = np.array(predict_f3_tip[:3,-1]).reshape((-1,3))
-  plot_pc(predict_f3_tip,color='blue',mode='cube',scale_factor=.005)
+  # for idx,joint in enumerate(f3_tip.joints):
+  #   if f3_tip.active_joints_mask[idx]:
+  #     gripper.q_value_map[joint.name] = q_list[count]
+  #     print("joint.name", joint.name, q_list[count], count)
+  #     count  = count + 1
+  # predict_f3_tip = gripper.link_map['base_link'].base_T.dot(gripper.chain_map['finger_middle_link_3'].forward_kinematics([q_list[10]]))
+  # predict_f3_tip = np.array(predict_f3_tip[:3,-1]).reshape((-1,3))
+  # plot_pc(predict_f3_tip,color='blue',mode='cube',scale_factor=.005)
 
-  #gripper.get_all_T0()
-  gripper.vis()
-  mayalab.show()
+  # #gripper.get_all_T0()
+  # gripper.vis()
+  # mayalab.show()
 
 
   #### Sample Point Clouds
