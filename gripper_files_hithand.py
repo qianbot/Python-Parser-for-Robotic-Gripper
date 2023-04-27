@@ -9,6 +9,7 @@ from urdf_parser_py.urdf import URDF
 from mayavi import mlab as mayalab
 import math
 import scipy.optimize
+import open3d as o3d
 
 import inverse_kinematics as ik
 from geolib.objfile import OBJ
@@ -369,15 +370,19 @@ class Gripper(object):
     for link_name in self.link_map:
       if link_name in self.parent_map:
         link_pc = self.link_map[link_name].visual.obj.pc_4d.dot(self.T0_map[link_name].transpose())[:,0:3]
-        self.pc_whole.append(link_pc)
+        # Downsample pc
+        downsampled_link_pc = link_pc[::3,:]
+        self.pc_whole.append(downsampled_link_pc)
     # add palm point cloud (root frame)
-    # self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d[:,0:3])
-    self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d.dot(self.link_map[self.get_root()].visual.T.transpose())[:,0:3])
+    self.pc_whole = np.array(self.pc_whole).reshape((-1,3))
+    base_link_pc = self.link_map[self.get_root()].visual.obj.pc_4d.dot(self.link_map[self.get_root()].visual.T.transpose())[:,0:3]
+    self.pc_whole = np.concatenate((self.pc_whole,base_link_pc),axis=0)
 
     # Origin code
     # self.pc_whole.append(self.link_map[self.get_root()].visual.obj.pc_4d.dot(self.link_map[self.get_root()].base_T.transpose())[:,0:3])
     self.pc_whole = np.array(self.pc_whole).reshape((-1,3))
     plot_pc(self.pc_whole)
+    o3d.io.write_point_cloud("hithand_pc.pcd", self.pc_whole)
     #mayalab.show()
 
 
